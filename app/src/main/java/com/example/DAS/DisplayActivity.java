@@ -1,8 +1,7 @@
-package com.example.courseworktwo;
+package com.example.DAS;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
@@ -16,7 +15,9 @@ import android.widget.TextView;
 
 import java.util.ArrayList;
 
-public class RatingsActivity extends AppCompatActivity {
+public class DisplayActivity extends AppCompatActivity {
+
+    public static final String LOG_TAG = "DISPLAY_ACTIVITY: ";
 
     private ListView listView;
     private Button addButton;
@@ -29,28 +30,38 @@ public class RatingsActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_ratings);
+        setContentView(R.layout.activity_display);
 
         dbController = new DatabaseController(this.getApplicationContext());
         sqlConnection = dbController.getWritableDatabase();
 
-        listView = (ListView) findViewById(R.id.ratings_list);
-        addButton = (Button) findViewById(R.id.view_imdb);
-        textView = (TextView) findViewById(R.id.rating_noData);
+        listView = (ListView) findViewById(R.id.display_list);
+        addButton = (Button) findViewById(R.id.addToFavs_button);
+        textView = (TextView) findViewById(R.id.display_noData);
 
         textView.setVisibility(View.INVISIBLE);
-        listView.setChoiceMode(ListView.CHOICE_MODE_SINGLE);
+        listView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
         addButton.setVisibility(View.INVISIBLE);
 
         initializeListView();
 
         listView.setOnItemClickListener((parent, view, position, id) -> {
-            addButton.setVisibility(View.VISIBLE);
+            boolean check = false;
+            booleanArray = listView.getCheckedItemPositions();
+            for (int i = 0; i < booleanArray.size(); i++) {
+                if (booleanArray.valueAt(i)) {
+                    check = true;
+                }
+            }
+            if (check) {
+                addButton.setVisibility(View.VISIBLE);
+            } else {
+                addButton.setVisibility(View.INVISIBLE);
+            }
         });
-
     }
 
-    private void initializeListView() {
+    public void initializeListView() {
         addButton.setVisibility(View.INVISIBLE);
         ArrayList<Integer> favouriteList = new ArrayList<>();
         try {
@@ -58,32 +69,32 @@ public class RatingsActivity extends AppCompatActivity {
             ArrayList<String> returnList = new ArrayList<>();
             favouriteList = new ArrayList<>();
             data.moveToNext();
-            do {
+            do { // the titles list if updated through the cursor along with the favourites list
                 returnList.add(data.getString(0));
                 favouriteList.add(data.getInt(1));
             } while (data.moveToNext());
-            ArrayAdapter<String> arrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_single_choice, returnList);
+            ArrayAdapter<String> arrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_multiple_choice, returnList);
             listView.setAdapter(arrayAdapter);
+            Log.e("GET COUNT: ", String.valueOf(arrayAdapter.getCount()));
         } catch (NullPointerException npe) {
             listView.setVisibility(View.INVISIBLE);
             textView.setVisibility(View.VISIBLE);
         } catch (Exception e) {
-            Log.e("OOF", "EXCEPTION: ");
+            Log.e(LOG_TAG, "EXCEPTION: ");
             e.printStackTrace();
         }
     }
 
-    public void openSingleMovie(View view) {
-        String checkedItem = null;
-        for(int i = 0; i < listView.getCount(); i++){
-            if(listView.isItemChecked(i)) {
-                checkedItem = (String) listView.getItemAtPosition(i);
+    public void addToFavourites(View view) {
+        for (int i = 0; i < listView.getCount(); i++) {
+            if (listView.isItemChecked(i)) {
+                sqlConnection.execSQL("UPDATE MOVIES " +
+                        "SET FAVOURITES = 1 " +
+                        "WHERE TITLE = '" + listView.getItemAtPosition(i) + "';");
             }
         }
 
-        Intent lookupMovie = new Intent(this, imdbActivity.class);
-        lookupMovie.putExtra("IMDBMOVIE",  checkedItem);
-        startActivity(lookupMovie);
+        initializeListView();
     }
 
 }

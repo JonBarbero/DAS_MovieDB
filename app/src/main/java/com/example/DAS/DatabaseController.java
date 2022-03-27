@@ -1,4 +1,4 @@
-package com.example.courseworktwo;
+package com.example.DAS;
 
 import android.content.ContentValues;
 import android.content.Context;
